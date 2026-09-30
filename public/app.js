@@ -191,6 +191,13 @@ async function detectPublicMode() {
   publicMode = !!(probe && probe.ok);
   if (publicMode) {
     document.querySelectorAll('.auth-hint').forEach((el) => el.remove());
+  } else {
+    // Backend unreachable (e.g. static hosting like GitHub Pages).
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(241,196,15,0.1);border:1px solid var(--amber);color:var(--text);padding:10px 16px;border-radius:8px;margin:0 22px 10px;font-size:13px;';
+    banner.innerHTML = '⚠ Backend API not connected — this page is the static dashboard. Deploy the backend (Render → <code>sentinel-soc</code>) and enter its URL (e.g. <code>https://sentinel-soc.onrender.com</code>) in the <b>API URL</b> field in the header to bring the data live.';
+    const nav = document.querySelector('nav');
+    nav.parentNode.insertBefore(banner, nav.nextSibling);
   }
   return publicMode;
 }
