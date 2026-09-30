@@ -6,13 +6,15 @@ const config = require('./config');
 const logger = require('./lib/logger');
 const { EvidenceRegistry } = require('./lib/evidence-registry');
 const { normalizeEvent, DOMAINS } = require('./lib/ingest');
-const { correlate } = require('./lib/correlate');
+const { correlate, assetMap } = require('./lib/correlate');
 const { sweep } = require('./lib/adversarial');
 const { generateAll, generateOne } = require('./lib/report');
 const { runAll } = require('./lib/eval');
 const { randomId } = require('./lib/util');
+const { ApiKeyStore } = require('./lib/apikeys');
 
 const registry = new EvidenceRegistry();
+const apiKeys = new ApiKeyStore();
 
 // Free hosts (Render etc.) wipe the disk on restart. When AUTO_SEED is on
 // and the registry is empty, rebuild the demo dataset so the chain, incidents,
@@ -69,10 +71,15 @@ function requireAdmin(req, res, next) {
 
 function requireIngest(req, res, next) {
   const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-api-key');
-  if (!token || !config.ingestTokens.includes(token)) {
-    return res.status(401).json({ error: 'unauthorized', hint: 'provide ingest token via Authorization: Bearer or x-api-key' });
+  if (!token) {
+    return res.status(401).json({ error: 'unauthorized', hint: 'provide ingest API key via Authorization: Bearer or x-api-key' });
   }
-  req.tokenId = token.slice(0, 12);
+  const v = apiKeys.validate(token);
+  if (!v.ok) {
+    return res.status(401).json({ error: 'unauthorized', hint: 'invalid or revoked API key' });
+  }
+  req.tokenId = v.tokenId;
+  req.keyName = v.name || 'bootstrap';
   next();
 }
 
@@ -171,6 +178,67 @@ app.get('/api/adversarial/sweep', requireAdmin, (req, res) => {
 
 app.post('/api/evaluation/run', requireAdmin, (req, res) => {
   res.json(runAll());
+});
+
+// ---- API key management (admin) ----
+app.post('/api/keys', requireAdmin, (req, res) => {
+  const rec = apiKeys.create(req.body?.name);
+  res.status(201).json({
+    id: rec.id,
+    name: rec.name,
+    key: rec.key, // shown ONCE at creation; store it securely
+    created_at: rec.created_at,
+    usage: 'send as Authorization: Bearer <key> or x-api-key on /api/ingest/*',
+  });
+});
+
+app.get('/api/keys', requireAdmin, (req, res) => {
+  res.json({
+    keys: apiKeys.list().map((k) => ({
+      id: k.id,
+      name: k.name,
+      key_preview: k.key.slice(0, 14) + '…',
+      created_at: k.created_at,
+      revoked: k.revoked,
+      last_used: k.last_used,
+    })),
+  });
+});
+
+app.delete('/api/keys/:id', requireAdmin, (req, res) => {
+  const rec = apiKeys.revoke(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'key not found' });
+  res.json({ revoked: true, id: rec.id, name: rec.name });
+});
+
+// ---- Threat-origin locations (aggregated across all incidents) ----
+app.get('/api/locations', requireAdmin, (req, res) => {
+  const incidents = correlate(registry);
+  const byCountry = new Map(); // country -> { incidents, events, ips:Set, provenance, risk_max, tags:Set }
+  const unlocated = new Set();
+  for (const inc of incidents) {
+    const li = inc.location_intel || { countries: [], unlocated_ips: [] };
+    for (const c of li.countries) {
+      const rec = byCountry.get(c.country) || { country: c.country, incidents: 0, events: 0, ips: new Set(), provenance: c.provenance, risk_max: 0, tags: new Set() };
+      rec.incidents += 1;
+      rec.events += c.event_count;
+      c.ips.forEach((ip) => rec.ips.add(ip));
+      rec.risk_max = Math.max(rec.risk_max, inc.risk_score);
+      for (const ip of c.ips) {
+        const intel = assetMap.ipIntel[ip];
+        if (intel?.tags) intel.tags.forEach((t) => rec.tags.add(t));
+      }
+      byCountry.set(c.country, rec);
+    }
+    li.unlocated_ips.forEach((ip) => unlocated.add(ip));
+  }
+  res.json({
+    countries: [...byCountry.values()]
+      .map((c) => ({ ...c, ips: [...c.ips], tags: [...c.tags] }))
+      .sort((a, b) => b.risk_max - a.risk_max || b.events - a.events),
+    unlocated_ips: [...unlocated],
+    note: unlocated.size ? `${unlocated.size} external IP(s) unlocated — not guessed.` : 'All external IPs located with provenance.',
+  });
 });
 
 // ---- Static frontend ----

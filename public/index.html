@@ -200,6 +200,7 @@
   <button data-view="live" class="active">Live Feed</button>
   <button data-view="incidents">Incidents</button>
   <button data-view="threats">Threat Origins</button>
+  <button data-view="locations">Locations</button>
   <button data-view="eval">Evaluation</button>
   <button data-view="api">API</button>
 </nav>
@@ -275,6 +276,30 @@
     <div class="panel" style="margin-top:14px;">
       <h2>Top Adversarial Findings <span class="badge">GET /api/adversarial/sweep</span></h2>
       <div class="panel-body" id="advList"></div>
+    </div>
+  </div>
+
+  <div id="view-locations" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--muted);">Hacker locations aggregated across all incidents — every country carries provenance (intel table or IdP geo). Unlocated IPs are never guessed.</div>
+      <button class="btn primary" id="btnLoadLoc">Refresh</button>
+    </div>
+    <div class="kpis" id="locKpis"></div>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Countries <span class="badge">GET /api/locations</span></h2>
+        <div class="panel-body" id="locTable" style="overflow-x:auto;"></div>
+      </div>
+      <div class="panel">
+        <h2>API Keys <span class="badge">/api/keys</span></h2>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="form-group"><label>Key name</label><input id="keyName" placeholder="siem-pipeline-prod" style="width:100%;" /></div>
+            <div style="display:flex;align-items:flex-end;"><button class="btn primary" id="btnMintKey">Create key</button></div>
+          </div>
+          <div id="keyList"></div>
+        </div>
+      </div>
     </div>
   </div>
 

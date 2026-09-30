@@ -25,19 +25,27 @@ const config = require('../config');
 const logger = require('./logger');
 
 function loadJson(fileName) {
-  const p = path.join(config.dataDir, fileName);
-  try {
-    if (!fs.existsSync(p)) return {};
-    const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      logger.warn('asset file has invalid shape, ignoring', { file: p });
-      return {};
+  // Primary: operator files in DATA_DIR. Fallback: bundled defaults from the
+  // repo's data/ folder (free hosts wipe DATA_DIR on restart — the shipped
+  // intel tables keep location tracking working after cold starts).
+  const candidates = [
+    path.join(config.dataDir, fileName),
+    path.resolve(__dirname, '..', '..', 'data', fileName),
+  ];
+  for (const p of candidates) {
+    try {
+      if (!fs.existsSync(p)) continue;
+      const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        logger.warn('asset file has invalid shape, ignoring', { file: p });
+        continue;
+      }
+      return parsed;
+    } catch (err) {
+      logger.error('failed to parse asset file', { file: p, error: String(err) });
     }
-    return parsed;
-  } catch (err) {
-    logger.error('failed to parse asset file', { file: p, error: String(err) });
-    return {};
   }
+  return {};
 }
 
 class AssetMap {

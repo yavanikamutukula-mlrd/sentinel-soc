@@ -77,15 +77,99 @@ $$('nav button').forEach((btn) => {
   btn.addEventListener('click', () => {
     $$('nav button').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
-    ['live', 'incidents', 'threats', 'eval', 'api'].forEach((v) => {
+    ['live', 'incidents', 'threats', 'locations', 'eval', 'api'].forEach((v) => {
       $(`#view-${v}`).style.display = btn.dataset.view === v ? '' : 'none';
     });
     if (btn.dataset.view === 'incidents') loadIncidents();
     if (btn.dataset.view === 'threats') loadThreats();
+    if (btn.dataset.view === 'locations') loadLocations();
     if (btn.dataset.view === 'api') loadApiRef();
     if (btn.dataset.view === 'live') refreshLive();
   });
 });
+
+// ---- Locations view (hacker origin tracking) ----
+async function loadLocations() {
+  const res = await api('/api/locations');
+  if (!res.ok) {
+    $('#locKpis').innerHTML = '';
+    $('#locTable').innerHTML = '<div class="empty">Admin token required.</div>';
+    return;
+  }
+  const { countries, unlocated_ips, note } = res.body;
+  $('#locKpis').innerHTML = `
+    <div class="kpi"><div class="v accent">${countries.length}</div><div class="l">Countries Tracked</div></div>
+    <div class="kpi"><div class="v red">${countries.filter((c) => c.risk_max >= 50).length}</div><div class="l">High-Risk Origins</div></div>
+    <div class="kpi"><div class="v amber">${unlocated_ips.length}</div><div class="l">Unlocated IPs (not guessed)</div></div>
+  `;
+  $('#locTable').innerHTML = countries.length ? `
+    <table>
+      <tr><th>Country</th><th>Incidents</th><th>Events</th><th>Max Risk</th><th>Provenance</th><th>Tags</th><th>IPs</th></tr>
+      ${countries.map((c) => `
+        <tr>
+          <td><strong>${esc(c.country)}</strong></td>
+          <td>${c.incidents}</td>
+          <td>${c.events}</td>
+          <td><span class="risk-pill ${c.risk_max >= 50 ? 'risk-high' : c.risk_max >= 25 ? 'risk-med' : 'risk-low'}">${c.risk_max}</span></td>
+          <td style="font-size:10px;">${esc(c.provenance)}</td>
+          <td style="font-size:10px;">${c.tags.map(esc).join(', ') || '—'}</td>
+          <td style="font-size:10px;">${c.ips.map(esc).join('<br/>')}</td>
+        </tr>
+      `).join('')}
+    </table>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;">${esc(note)}</div>
+  ` : '<div class="empty">No location-tagged evidence yet.</div>';
+}
+
+$('#btnLoadLoc').addEventListener('click', loadLocations);
+
+// ---- API keys management ----
+$('#btnMintKey').addEventListener('click', async () => {
+  const name = $('#keyName').value.trim() || 'unnamed';
+  const res = await api('/api/keys', { method: 'POST', body: JSON.stringify({ name }) });
+  if (!res.ok) return toast('Key creation failed (admin token required)', true);
+  $('#keyName').value = '';
+  loadKeys();
+  // Show the full key once — it is never displayed again.
+  const full = res.body.key;
+  $('#keyList').insertAdjacentHTML('afterbegin', `
+    <div class="gap-flag" style="border-left-color:var(--green);background:rgba(46,204,113,0.06);">
+      <strong>NEW KEY (copy now — shown once):</strong><br/>
+      <code style="font-family:var(--mono);font-size:11px;">${esc(full)}</code>
+    </div>
+  `);
+  toast(`API key "${res.body.name}" created`);
+});
+
+async function loadKeys() {
+  const res = await api('/api/keys');
+  if (!res.ok) {
+    $('#keyList').innerHTML = '<div class="empty">Admin token required to manage keys.</div>';
+    return;
+  }
+  $('#keyList').innerHTML = res.body.keys.length
+    ? `<table>
+        <tr><th>Name</th><th>Key</th><th>Status</th><th>Last used</th><th></th></tr>
+        ${res.body.keys.map((k) => `
+          <tr>
+            <td>${esc(k.name)}</td>
+            <td style="font-size:10px;">${esc(k.key_preview)}</td>
+            <td>${k.revoked ? '<span class="risk-pill risk-high">revoked</span>' : '<span class="risk-pill risk-low">active</span>'}</td>
+            <td style="font-size:10px;">${esc(k.last_used || 'never')}</td>
+            <td>${k.revoked ? '' : `<button class="btn danger" data-revoke="${esc(k.id)}">Revoke</button>`}</td>
+          </tr>
+        `).join('')}
+      </table>`
+    : '<div class="empty">No managed keys — bootstrap token from INGEST_TOKENS still works.</div>';
+  $('#keyList').querySelectorAll('[data-revoke]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      await api(`/api/keys/${b.dataset.revoke}`, { method: 'DELETE' });
+      loadKeys();
+      toast('Key revoked');
+    });
+  });
+}
+loadKeys();
 
 function authHeaders() {
   return adminToken ? { Authorization: `Bearer ${adminToken}` } : {};

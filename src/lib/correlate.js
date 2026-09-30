@@ -261,4 +261,4 @@ function enrich(registry, inc) {
   };
 }
 
-module.exports = { correlate };
+module.exports = { correlate, assetMap };
