@@ -13,6 +13,20 @@ const { runAll } = require('./lib/eval');
 const { randomId } = require('./lib/util');
 
 const registry = new EvidenceRegistry();
+
+// Free hosts (Render etc.) wipe the disk on restart. When AUTO_SEED is on
+// and the registry is empty, rebuild the demo dataset so the chain, incidents,
+// and threat map are demonstrable immediately after cold start.
+if (config.autoSeed && registry.order.length === 0) {
+  try {
+    // eslint-disable-next-line global-require
+    require('../scripts/seed-lib').seedRegistry(registry);
+    logger.info('auto-seeded empty registry (AUTO_SEED=true)');
+  } catch (err) {
+    logger.error('auto-seed failed', { error: String(err) });
+  }
+}
+
 const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));

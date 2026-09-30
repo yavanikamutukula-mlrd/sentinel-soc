@@ -18,3 +18,5 @@ services:
         value: ""   # set to your custom domain after pointing DNS, e.g. https://soc.yourdomain.com
       - key: DATA_DIR
         value: /tmp/sentinel-data   # free tier has ephemeral disk; use a Render disk in production
+      - key: AUTO_SEED
+        value: "true"   # rebuild demo dataset after cold start (ephemeral disk)

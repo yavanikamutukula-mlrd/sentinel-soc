@@ -40,6 +40,9 @@ const config = {
   // Evaluator
   evalMinCoverage: Number(env('EVAL_MIN_COVERAGE', '0.85')),
   evalMinFaithfulness: Number(env('EVAL_MIN_FAITHFULNESS', '1.0')),
+  // Auto-seed demo attack data when the registry is empty (free hosts have
+  // ephemeral disks; this keeps the demo usable after every cold start).
+  autoSeed: env('AUTO_SEED', 'false') === 'true',
 };
 
 config.apiKeyForDisplay = crypto.createHash('sha256').update(config.adminToken).digest('hex').slice(0, 8);
