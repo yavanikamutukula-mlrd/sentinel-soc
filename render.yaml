@@ -20,3 +20,5 @@ services:
         value: /tmp/sentinel-data   # free tier has ephemeral disk; use a Render disk in production
       - key: AUTO_SEED
         value: "true"   # rebuild demo dataset after cold start (ephemeral disk)
+      - key: PUBLIC_MODE
+        value: "true"   # visitors can view incidents/locations/reports without a token

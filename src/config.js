@@ -49,6 +49,11 @@ const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  // PUBLIC_MODE=true: all read endpoints (incidents, reports, locations,
+  // integrity, adversarial sweep) and the evaluation runner are accessible
+  // WITHOUT an admin token — for public demo sites. Write operations
+  // (ingest, key minting/revocation) always require credentials.
+  publicMode: env('PUBLIC_MODE', 'false') === 'true',
 };
 
 config.apiKeyForDisplay = crypto.createHash('sha256').update(config.adminToken).digest('hex').slice(0, 8);

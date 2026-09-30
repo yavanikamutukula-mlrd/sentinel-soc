@@ -62,6 +62,9 @@ function rateLimit(key, limitPerMin) {
 
 // ---- Auth ----
 function requireAdmin(req, res, next) {
+  // Public demo mode: read-only access is open; mutations still need auth.
+  const readOnly = req.method === 'GET' || (req.method === 'POST' && req.path === '/api/evaluation/run');
+  if (config.publicMode && readOnly) return next();
   const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-api-key');
   if (!token || token !== config.adminToken) {
     return res.status(401).json({ error: 'unauthorized', hint: 'provide admin token via Authorization: Bearer or x-api-key' });
@@ -104,6 +107,7 @@ app.get('/api', (req, res) => {
       stats: `${base}/api/stats  (GET)`,
     },
     anti_hallucination: 'reports cite evidence IDs for every claim; missing data is flagged, never invented',
+    public_mode: config.publicMode ? 'read-only endpoints are open; ingest & key management require API keys' : 'all analysis endpoints require the admin token',
   });
 });
 

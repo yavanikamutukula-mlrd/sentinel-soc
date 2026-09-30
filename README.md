@@ -54,6 +54,14 @@ curl -X POST $BASE/api/ingest/event \
 Strict validation: missing/unparseable fields are **rejected with an explicit
 reason** — never silently fixed, because fixing = inventing.
 
+## Public demo mode
+
+Set `PUBLIC_MODE=true` (enabled in `render.yaml`) to let visitors browse
+everything on the website without a token: incidents, evidence-backed reports,
+threat-origin **locations**, integrity verification, adversarial sweep, and
+the evaluation runner. Write operations (ingest, API-key minting/revocation)
+always require credentials. Set `PUBLIC_MODE=false` for a private deployment.
+
 ## Custom URL & API access
 
 Three layers of custom-URL support:

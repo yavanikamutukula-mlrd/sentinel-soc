@@ -185,6 +185,16 @@ async function api(path, opts = {}) {
   return { ok: res.ok, status: res.status, body };
 }
 
+let publicMode = false; // set true if the server reports open read access
+async function detectPublicMode() {
+  const probe = await api('/api/incidents').catch(() => null);
+  publicMode = !!(probe && probe.ok);
+  if (publicMode) {
+    document.querySelectorAll('.auth-hint').forEach((el) => el.remove());
+  }
+  return publicMode;
+}
+
 function toast(msg, isError = false) {
   const el = document.createElement('div');
   el.className = 'toast';
@@ -250,7 +260,7 @@ async function loadIncidents() {
   const res = await api('/api/reports');
   const box = $('#incidentList');
   if (!res.ok) {
-    box.innerHTML = `<div class="empty">Admin token required to view reports (set it top-right).</div>`;
+    box.innerHTML = `<div class="empty auth-hint">Admin token required to view reports (set it top-right)${publicMode ? '' : ' — or this is a public demo where data loads automatically'}.</div>`;
     return;
   }
   const { reports } = res.body;
@@ -455,7 +465,12 @@ $('#btnTry').addEventListener('click', async () => {
 });
 
 // ---- Init ----
-refreshLive();
+(async () => {
+  await detectPublicMode();
+  refreshLive();
+  loadIncidents();
+  loadKeys();
+})();
 setInterval(() => {
   if ($('#view-live').style.display !== 'none') refreshLive();
 }, 15000);
