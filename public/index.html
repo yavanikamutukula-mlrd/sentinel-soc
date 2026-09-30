@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentinel SOC — Evidence-Backed Incident Investigation</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #10161f;
+    --panel: #131b26;
+    --panel2: #182230;
+    --border: #223042;
+    --text: #d7e1ee;
+    --muted: #8296ab;
+    --accent: #4da3ff;
+    --green: #2ecc71;
+    --amber: #f1c40f;
+    --red: #e74c3c;
+    --purple: #9b59b6;
+    --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, #4da3ff, #9b59b6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .brand h1 { font-size: 16px; font-weight: 600; }
+  .brand .sub { font-size: 11px; color: var(--muted); }
+  .trust-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.bad { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  nav {
+    display: flex; gap: 4px; padding: 8px 22px 0;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  nav button {
+    background: none; border: none; color: var(--muted);
+    padding: 10px 16px; cursor: pointer; font-size: 13px;
+    border-bottom: 2px solid transparent; font-family: inherit;
+  }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  nav button:hover { color: var(--text); }
+  main { padding: 18px 22px; max-width: 1400px; margin: 0 auto; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .kpi .v { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .kpi .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+  .kpi .v.red { color: var(--red); } .kpi .v.amber { color: var(--amber); }
+  .kpi .v.green { color: var(--green); } .kpi .v.accent { color: var(--accent); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  @media (max-width: 980px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--muted); padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel h2 .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); color: var(--accent); font-family: var(--mono); }
+  .panel-body { padding: 14px 16px; }
+  .btn {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 7px; cursor: pointer; font-size: 12px; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: linear-gradient(135deg, #2563eb, #4da3ff); border: none; color: white; }
+  .btn.danger { background: none; border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(231,76,60,0.12); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(34,48,66,0.5); font-family: var(--mono); font-size: 11px; }
+  tr:hover td { background: rgba(77,163,255,0.04); }
+  .risk-pill {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-weight: 700; font-size: 11px; font-family: var(--mono);
+  }
+  .risk-high { background: rgba(231,76,60,0.15); color: var(--red); }
+  .risk-med { background: rgba(241,196,15,0.15); color: var(--amber); }
+  .risk-low { background: rgba(46,204,113,0.15); color: var(--green); }
+  .dom-tag {
+    display: inline-block; font-size: 10px; padding: 2px 7px; margin: 1px;
+    border-radius: 4px; background: var(--panel2); border: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  .dom-endpoint { color: #4da3ff; } .dom-identity { color: #9b59b6; }
+  .dom-cloud { color: #2ecc71; } .dom-network { color: #f39c12; }
+  .gap-flag {
+    border-left: 3px solid var(--amber); background: rgba(241,196,15,0.06);
+    padding: 8px 12px; margin: 6px 0; font-size: 12px; border-radius: 0 6px 6px 0;
+  }
+  .gap-flag strong { color: var(--amber); }
+  .adv-flag {
+    border-left: 3px solid var(--red); background: rgba(231,76,60,0.06);
+    padding: 8px 12px; margin: 6px 0; font-size: 12px; border-radius: 0 6px 6px 0;
+  }
+  .adv-flag strong { color: var(--red); }
+  .claim { font-size: 12px; padding: 7px 10px; margin: 5px 0; background: var(--panel2); border-radius: 6px; line-height: 1.5; }
+  .ev-id { font-family: var(--mono); font-size: 10px; color: var(--accent); cursor: pointer; }
+  .ev-id:hover { text-decoration: underline; }
+  .timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(34,48,66,0.5); font-size: 12px; }
+  .timeline-item:last-child { border-bottom: none; }
+  .tl-time { font-family: var(--mono); color: var(--muted); min-width: 150px; font-size: 11px; }
+  .tl-stage { min-width: 130px; }
+  .stage-tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--panel2); font-family: var(--mono); }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-content {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    width: min(900px, 92vw); max-height: 88vh; overflow-y: auto; padding: 22px;
+  }
+  .modal-content h3 { margin-bottom: 4px; font-size: 18px; }
+  .modal-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: 10px 0 16px; }
+  .close-x { float: right; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+  .close-x:hover { color: var(--text); }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 10px; }
+  .eval-check { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; font-family: var(--mono); }
+  .eval-check .ok { color: var(--green); } .eval-check .fail { color: var(--red); }
+  pre.code {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 11px; overflow-x: auto; font-family: var(--mono);
+    line-height: 1.6; color: #b8c7d9;
+  }
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; background: var(--panel2);
+    border: 1px solid var(--accent); color: var(--text); padding: 12px 18px;
+    border-radius: 8px; font-size: 13px; z-index: 200; animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .footer-note { text-align: center; color: var(--muted); font-size: 11px; padding: 20px 0 10px; }
+  .world-map { position: relative; height: 220px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  .threat-pin {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--red); box-shadow: 0 0 10px var(--red);
+    transform: translate(-50%, -50%);
+  }
+  .threat-pin::after {
+    content: ''; position: absolute; inset: -8px; border-radius: 50%;
+    border: 1px solid rgba(231,76,60,0.5); animation: ping 2s infinite;
+  }
+  @keyframes ping { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+  .pin-label { position: absolute; font-size: 9px; color: var(--red); font-family: var(--mono); transform: translate(8px, -4px); white-space: nowrap; }
+  .prov-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 3px; font-family: var(--mono); border: 1px solid var(--border); }
+  input, select {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: var(--mono);
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-row label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .form-group { flex: 1; min-width: 140px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">🛡️</div>
+    <div>
+      <h1>Sentinel SOC</h1>
+      <div class="sub">Evidence-Backed Incident Investigation</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <div class="trust-chip" id="chainChip"><span class="dot ok"></span><span id="chainText">CHAIN OK</span></div>
+    <div class="trust-chip"><span style="color:var(--muted);">Admin token:</span><input id="tokenInput" type="password" placeholder="sentinel-admin-token" style="width:170px;" /></div>
+  </div>
+</header>
+<nav>
+  <button data-view="live" class="active">Live Feed</button>
+  <button data-view="incidents">Incidents</button>
+  <button data-view="threats">Threat Origins</button>
+  <button data-view="eval">Evaluation</button>
+  <button data-view="api">API</button>
+</nav>
+<main>
+  <div id="view-live">
+    <div class="kpis">
+      <div class="kpi"><div class="v accent" id="kpiEvents">—</div><div class="l">Evidence Events</div></div>
+      <div class="kpi"><div class="v red" id="kpiHigh">—</div><div class="l">High-Risk Incidents</div></div>
+      <div class="kpi"><div class="v amber" id="kpiAdv">—</div><div class="l">Adversarial Findings</div></div>
+      <div class="kpi"><div class="v green" id="kpiFabrication">0</div><div class="l">Fabricated Claims (all-time)</div></div>
+    </div>
+    <div class="grid3">
+      <div class="panel">
+        <h2>Ingest Simulator <span class="badge">POST /api/ingest/event</span></h2>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="form-group"><label>Domain</label>
+              <select id="ingDomain">
+                <option value="endpoint">endpoint</option>
+                <option value="identity">identity</option>
+                <option value="cloud">cloud</option>
+                <option value="network">network</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Action</label>
+              <select id="ingAction"></select>
+            </div>
+            <div class="form-group"><label>Ingest token</label><input id="ingToken" type="password" value="ingest-demo-token" style="width:100%;" /></div>
+            <div style="display:flex;align-items:flex-end;"><button class="btn primary" id="btnIngest">Send Event</button></div>
+          </div>
+          <div class="form-row" id="ingFields"></div>
+          <pre class="code" id="ingResult">Response will appear here…</pre>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Registry Integrity <span class="badge">GET /api/integrity/verify</span></h2>
+        <div class="panel-body">
+          <pre class="code" id="integrityBox">Verifying…</pre>
+          <button class="btn" id="btnVerify" style="margin-top:10px;">Re-verify chain</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-incidents" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--muted);">Unified multi-domain incident timelines. Every claim cites evidence IDs.</div>
+      <button class="btn primary" id="btnRefreshIncidents">Refresh</button>
+    </div>
+    <div id="incidentList"></div>
+  </div>
+
+  <div id="view-threats" style="display:none;">
+    <div class="grid2">
+      <div class="panel">
+        <h2>Threat Origin Map <span class="badge">derived from evidence geo/IP</span></h2>
+        <div class="panel-body">
+          <div class="world-map" id="worldMap">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;" id="mapHint">No geo-tagged threat evidence yet</div>
+            <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid">
+              <rect width="1000" height="500" fill="none" />
+              <g id="grat" stroke="#1c2836" stroke-width="1">
+                <line x1="0" y1="125" x2="1000" y2="125" /><line x1="0" y1="250" x2="1000" y2="250" /><line x1="0" y1="375" x2="1000" y2="375" />
+                <line x1="250" y1="0" x2="250" y2="500" /><line x1="500" y1="0" x2="500" y2="500" /><line x1="750" y1="0" x2="750" y2="500" />
+              </g>
+            </svg>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Pins derive ONLY from evidence geo with provenance: <span style="color:var(--red);">● intel</span> = operator threat-intel table, <span style="color:var(--amber);">● IdP geo</span> = identity-provider-asserted. Unknown-origin IPs are never placed on the map.</div>
+        </div>
+        <div id="unlocatedBox" style="margin-top:10px;"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <h2>Top Adversarial Findings <span class="badge">GET /api/adversarial/sweep</span></h2>
+      <div class="panel-body" id="advList"></div>
+    </div>
+  </div>
+
+  <div id="view-eval" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--muted);">Golden-scenario evaluation: fabrication rate must be 0 for trust certification.</div>
+      <button class="btn primary" id="btnRunEval">Run Evaluation</button>
+    </div>
+    <div id="evalResults"><div class="empty">Run the evaluation to verify pipeline trustworthiness.</div></div>
+  </div>
+
+  <div id="view-api" style="display:none;">
+    <div class="panel">
+      <h2>API Reference <span class="badge">custom URL support via PUBLIC_BASE_URL</span></h2>
+      <div class="panel-body">
+        <pre class="code" id="apiRef">Loading…</pre>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <h2>Try It</h2>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;"><label>Endpoint</label><input id="tryPath" value="/api/stats" style="width:100%;" /></div>
+          <div style="display:flex;align-items:flex-end;"><button class="btn" id="btnTry">GET</button></div>
+        </div>
+        <pre class="code" id="tryResult">—</pre>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">Sentinel SOC v1.0 — every claim in every report is backed by hash-chained evidence. Missing data is flagged, never invented.</div>
+</main>
+<div id="modalRoot"></div>
+<script src="/app.js"></script>
+</body>
+</html>

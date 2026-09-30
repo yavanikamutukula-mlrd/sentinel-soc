@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sentinel-soc
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: INGEST_TOKENS
+        value: change-me-ingest-token
+      - key: PUBLIC_BASE_URL
+        value: ""   # set to your custom domain after pointing DNS, e.g. https://soc.yourdomain.com
+      - key: DATA_DIR
+        value: /tmp/sentinel-data   # free tier has ephemeral disk; use a Render disk in production

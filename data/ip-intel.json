@@ -1,0 +1,10 @@
+{
+  "185.220.101.7": { "country": "RU", "asn": "AS205100 F3 Netze — TOR exit range", "tags": ["tor_exit", "known_bad"] },
+  "45.33.32.156": { "country": "US", "asn": "AS204915 Hostwinds LLC", "tags": ["bulletproof_hosting", "c2_history"] },
+  "91.215.85.222": { "country": "UA", "asn": "AS48648 TajirNet", "tags": ["malware_distribution"] },
+  "103.75.190.11": { "country": "HK", "asn": "AS135377 UCloud", "tags": ["c2_history"] },
+  "203.0.113.66": { "country": "KP", "asn": "Ryugyongsong provider", "tags": ["state_linked", "known_bad"] },
+  "152.199.4.33": { "country": "US", "asn": "AS16625 Akamai", "tags": ["cdn"] },
+  "142.250.80.46": { "country": "US", "asn": "AS15169 Google LLC", "tags": ["benign"] },
+  "45.33.32.155": { "country": "US", "asn": "AS204915 Hostwinds LLC", "tags": ["scanner"] }
+}

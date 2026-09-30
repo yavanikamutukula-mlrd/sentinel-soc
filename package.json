@@ -1,0 +1,30 @@
+{
+  "name": "sentinel-soc",
+  "version": "1.0.0",
+  "description": "AI-assisted Security Operations Centre (SOC) investigation system that correlates multi-domain telemetry into evidence-backed incident reports without hallucinating missing data.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node scripts/seed.js",
+    "eval": "node scripts/eval.js",
+    "test": "node --test tests/"
+  },
+  "keywords": [
+    "soc",
+    "security-operations",
+    "incident-response",
+    "threat-detection",
+    "ai-copilot",
+    "siem"
+  ],
+  "author": "Sentinel SOC",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

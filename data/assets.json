@@ -1,0 +1,8 @@
+{
+  "10.4.1.44": { "host": "FINWS-4411", "user": "j.doe", "owner": "finance" },
+  "10.4.7.120": { "host": "ENG-WS-1120", "user": "r.patel", "owner": "engineering" },
+  "10.9.3.21": { "host": "SG-WS-2201", "user": "m.chen", "owner": "apac-sales" },
+  "10.4.2.1": { "host": "IT-WS-9001", "user": "svc-helpdesk", "owner": "it-ops" },
+  "10.9.1.5": { "host": "HR-WS-77", "user": "a.smith", "owner": "hr" },
+  "10.9.8.7": { "host": "BKPSRV-02", "user": "svc_backup", "owner": "it-ops" }
+}

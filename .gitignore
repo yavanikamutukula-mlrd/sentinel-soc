@@ -1,0 +1,6 @@
+node_modules/
+data/evidence.json
+data/evidence.json.tmp
+.env
+*.log
+/tmp
