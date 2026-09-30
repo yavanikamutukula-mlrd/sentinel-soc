@@ -54,10 +54,27 @@ curl -X POST $BASE/api/ingest/event \
 Strict validation: missing/unparseable fields are **rejected with an explicit
 reason** — never silently fixed, because fixing = inventing.
 
-## Custom URL
+## Custom URL & API access
 
-Set `PUBLIC_BASE_URL=https://soc.yourdomain.com` (Render → Environment) after
-pointing DNS at the service. All API links then render with your domain.
+Three layers of custom-URL support:
+
+1. **Dashboard → any API host**: enter an API base URL in the header
+   ("API URL" field). It is persisted in localStorage and all dashboard
+   calls go to that host — useful when the API lives on a different
+   domain than the static dashboard.
+2. **Server-rendered links**: set `PUBLIC_BASE_URL=https://soc.yourdomain.com`
+   (Render → Environment) so `/api` discovery and all endpoint references
+   use your custom domain.
+3. **Cross-origin API access**: set `ALLOWED_ORIGINS` (comma-separated,
+   or `*`) so browser clients on your custom domain can call the API;
+   CORS preflight is handled by the server.
+
+After pointing DNS (CNAME) at your Render service, the API is reachable at
+`https://soc.yourdomain.com/api/...` with token auth:
+
+```bash
+curl https://soc.yourdomain.com/api/reports -H "Authorization: Bearer $ADMIN_TOKEN"
+```
 
 ## Location / threat-origin data
 

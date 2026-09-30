@@ -12,6 +12,21 @@ $('#tokenInput').addEventListener('change', (e) => {
   localStorage.setItem('sentinel_admin_token', adminToken);
 });
 
+// ---- Custom API URL support: point the dashboard at any host ----
+let apiBase = localStorage.getItem('sentinel_api_base') || '';
+$('#apiBaseInput').value = apiBase;
+function normalizeBase(u) {
+  const s = u.trim().replace(/\/+$/, '');
+  if (!s) return '';
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+$('#apiBaseInput').addEventListener('change', (e) => {
+  apiBase = normalizeBase(e.target.value);
+  localStorage.setItem('sentinel_api_base', apiBase);
+  toast(apiBase ? `API base set: ${apiBase}` : 'API base cleared — using this host');
+  refreshLive();
+});
+
 const ACTIONS_BY_DOMAIN = {
   endpoint: ['process_start', 'file_write', 'file_delete', 'registry_write'],
   identity: ['login_success', 'login_failure', 'logout', 'assume_role'],
@@ -77,7 +92,8 @@ function authHeaders() {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch(path, {
+  const url = apiBase ? `${apiBase}${path}` : path;
+  const res = await fetch(url, {
     ...opts,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(opts.headers || {}) },
   });
@@ -344,8 +360,8 @@ $('#btnRunEval').addEventListener('click', async () => {
 
 // ---- API view ----
 async function loadApiRef() {
-  const res = await fetch('/api').then((r) => r.json()).catch(() => null);
-  $('#apiRef').textContent = res ? JSON.stringify(res, null, 2) : 'Failed to load /api';
+  const res = await api('/api').catch(() => null);
+  $('#apiRef').textContent = res && res.ok ? JSON.stringify(res.body, null, 2) : 'Failed to load /api';
 }
 
 $('#btnTry').addEventListener('click', async () => {

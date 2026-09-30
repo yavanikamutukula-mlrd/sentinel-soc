@@ -31,6 +31,21 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 
+// ---- CORS: allow browser clients on custom domains to call this API ----
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  const allow = config.allowedOrigins.includes('*') || config.allowedOrigins.includes(origin);
+  if (origin && allow) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Max-Age', '86400');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // ---- Simple in-memory rate limiter for ingest ----
 const rateBuckets = new Map(); // key -> timestamps[]
 function rateLimit(key, limitPerMin) {

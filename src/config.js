@@ -43,6 +43,12 @@ const config = {
   // Auto-seed demo attack data when the registry is empty (free hosts have
   // ephemeral disks; this keeps the demo usable after every cold start).
   autoSeed: env('AUTO_SEED', 'false') === 'true',
+  // CORS: comma-separated list of origins allowed to call the API from a
+  // browser (e.g. your custom domain). "*" allows all (fine for public demo).
+  allowedOrigins: env('ALLOWED_ORIGINS', '*')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 };
 
 config.apiKeyForDisplay = crypto.createHash('sha256').update(config.adminToken).digest('hex').slice(0, 8);
