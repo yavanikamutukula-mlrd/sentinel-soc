@@ -64,7 +64,10 @@ out clears them. Visitors without a token can browse everything when
      sets `AUTO_SEED` and `PUBLIC_MODE`).
    - Set `ADMIN_TOKEN` / `INGEST_TOKENS` env vars on the free plan.
 3. **Point the dashboard at the API:** set the API URL field once (persisted
-   in localStorage) or use `?api=` deep links.
+   in localStorage) or use `?api=` deep links. Local development tip: type
+   `localhost:3000` (or `127.0.0.1:3000`) into the API URL field — the
+   dashboard automatically uses `http://` for local hosts, no `https://`
+   prefix or CORS setup needed.
 
 > GitHub Pages serves only static files — the Node API must run somewhere
 > like Render. That's why the Pages build ships a demo snapshot as fallback.

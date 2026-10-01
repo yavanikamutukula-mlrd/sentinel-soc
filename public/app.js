@@ -56,7 +56,10 @@ $('#apiBaseInput').value = apiBase;
 function normalizeBase(u) {
   const s = String(u || '').trim().replace(/\/+$/, '');
   if (!s) return '';
-  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  if (/^https?:\/\//i.test(s)) return s;
+  // Local hosts default to http:// (no TLS on localhost dev servers)
+  if (/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(s)) return `http://${s}`;
+  return `https://${s}`;
 }
 
 $('#apiBaseInput').addEventListener('change', (e) => {
