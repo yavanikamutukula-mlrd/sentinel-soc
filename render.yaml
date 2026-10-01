@@ -22,3 +22,7 @@ services:
         value: "true"   # rebuild demo dataset after cold start (ephemeral disk)
       - key: PUBLIC_MODE
         value: "true"   # visitors can view incidents/locations/reports without a token
+      - key: ALLOWED_ORIGINS
+        value: "*"   # browser clients may call this API from any origin (fine for public demo).
+                     # For production, list your domains instead, e.g.:
+                     # https://soc.yourdomain.com,https://soc-frontend.onrender.com,https://<user>.github.io

@@ -29,6 +29,7 @@
   }
   header {
     display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
     padding: 14px 22px; background: var(--bg2);
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 10;
@@ -47,20 +48,23 @@
     font-size: 11px; padding: 5px 10px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--panel);
   }
-  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
   .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .dot.bad { background: var(--red); box-shadow: 0 0 6px var(--red); }
   nav {
     display: flex; gap: 4px; padding: 8px 22px 0;
     background: var(--bg2); border-bottom: 1px solid var(--border);
+    overflow-x: auto;
   }
   nav button {
     background: none; border: none; color: var(--muted);
     padding: 10px 16px; cursor: pointer; font-size: 13px;
     border-bottom: 2px solid transparent; font-family: inherit;
+    white-space: nowrap;
   }
   nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
   nav button:hover { color: var(--text); }
+  #modeBanner:empty { display: none; }
   main { padding: 18px 22px; max-width: 1400px; margin: 0 auto; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .kpi {
@@ -81,9 +85,9 @@
   .panel h2 {
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
     color: var(--muted); padding: 12px 16px; border-bottom: 1px solid var(--border);
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
   }
-  .panel h2 .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); color: var(--accent); font-family: var(--mono); }
+  .panel h2 .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); color: var(--accent); font-family: var(--mono); text-transform: none; }
   .panel-body { padding: 14px 16px; }
   .btn {
     background: var(--panel2); color: var(--text); border: 1px solid var(--border);
@@ -92,6 +96,7 @@
   }
   .btn:hover { border-color: var(--accent); color: var(--accent); }
   .btn.primary { background: linear-gradient(135deg, #2563eb, #4da3ff); border: none; color: white; }
+  .btn.primary:hover { color: white; filter: brightness(1.1); }
   .btn.danger { background: none; border-color: var(--red); color: var(--red); }
   .btn.danger:hover { background: rgba(231,76,60,0.12); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -134,6 +139,7 @@
   .modal {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
     display: flex; align-items: center; justify-content: center; z-index: 100;
+    padding: 16px;
   }
   .modal-content {
     background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
@@ -158,11 +164,11 @@
   }
   @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .footer-note { text-align: center; color: var(--muted); font-size: 11px; padding: 20px 0 10px; }
-  .world-map { position: relative; height: 220px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  .world-map { position: relative; height: 260px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
   .threat-pin {
     position: absolute; width: 10px; height: 10px; border-radius: 50%;
     background: var(--red); box-shadow: 0 0 10px var(--red);
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%); cursor: pointer;
   }
   .threat-pin::after {
     content: ''; position: absolute; inset: -8px; border-radius: 50%;
@@ -190,13 +196,16 @@
       <div class="sub">Evidence-Backed Incident Investigation</div>
     </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
     <div class="trust-chip" id="chainChip"><span class="dot ok"></span><span id="chainText">CHAIN OK</span></div>
-    <div class="trust-chip"><span style="color:var(--muted);">Admin token:</span><input id="tokenInput" type="password" placeholder="sentinel-admin-token" style="width:150px;" /></div>
-    <div class="trust-chip"><span style="color:var(--muted);">API URL:</span><input id="apiBaseInput" type="text" placeholder="(this host)" style="width:190px;" /></div>
+    <div class="trust-chip" id="demoChip" style="display:none;"><span class="dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></span><span>DEMO DATA</span></div>
+    <div class="trust-chip" id="sessionChip"><span class="dot" id="sessionDot" style="background:var(--muted);"></span><span id="sessionText">Visitor</span></div>
+    <div class="trust-chip"><span style="color:var(--muted);">API URL:</span><input id="apiBaseInput" type="text" placeholder="(this host)" style="width:170px;" aria-label="API base URL" /></div>
+    <button class="btn primary" id="btnLogin">Sign in</button>
+    <button class="btn" id="btnLogout" style="display:none;">Sign out</button>
   </div>
 </header>
-<nav>
+<nav aria-label="Dashboard views">
   <button data-view="live" class="active">Live Feed</button>
   <button data-view="incidents">Incidents</button>
   <button data-view="threats">Threat Origins</button>
@@ -204,6 +213,7 @@
   <button data-view="eval">Evaluation</button>
   <button data-view="api">API</button>
 </nav>
+<div id="modeBanner"></div>
 <main>
   <div id="view-live">
     <div class="kpis">
@@ -217,7 +227,7 @@
         <h2>Ingest Simulator <span class="badge">POST /api/ingest/event</span></h2>
         <div class="panel-body">
           <div class="form-row">
-            <div class="form-group"><label>Domain</label>
+            <div class="form-group"><label for="ingDomain">Domain</label>
               <select id="ingDomain">
                 <option value="endpoint">endpoint</option>
                 <option value="identity">identity</option>
@@ -225,10 +235,10 @@
                 <option value="network">network</option>
               </select>
             </div>
-            <div class="form-group"><label>Action</label>
+            <div class="form-group"><label for="ingAction">Action</label>
               <select id="ingAction"></select>
             </div>
-            <div class="form-group"><label>Ingest token</label><input id="ingToken" type="password" value="ingest-demo-token" style="width:100%;" /></div>
+            <div class="form-group"><label for="ingToken">Ingest token</label><input id="ingToken" type="password" value="ingest-demo-token" style="width:100%;" autocomplete="off" /></div>
             <div style="display:flex;align-items:flex-end;"><button class="btn primary" id="btnIngest">Send Event</button></div>
           </div>
           <div class="form-row" id="ingFields"></div>
@@ -246,7 +256,7 @@
   </div>
 
   <div id="view-incidents" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
       <div style="font-size:13px;color:var(--muted);">Unified multi-domain incident timelines. Every claim cites evidence IDs.</div>
       <button class="btn primary" id="btnRefreshIncidents">Refresh</button>
     </div>
@@ -255,13 +265,14 @@
 
   <div id="view-threats" style="display:none;">
     <div class="grid2">
-      <div class="panel">
+      <div class="panel" style="grid-column:1/-1;">
         <h2>Threat Origin Map <span class="badge">derived from evidence geo/IP</span></h2>
         <div class="panel-body">
           <div class="world-map" id="worldMap">
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;" id="mapHint">No geo-tagged threat evidence yet</div>
-            <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid">
+            <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid" aria-label="World threat origin map">
               <rect width="1000" height="500" fill="none" />
+              <g id="worldShapes"></g>
               <g id="grat" stroke="#1c2836" stroke-width="1">
                 <line x1="0" y1="125" x2="1000" y2="125" /><line x1="0" y1="250" x2="1000" y2="250" /><line x1="0" y1="375" x2="1000" y2="375" />
                 <line x1="250" y1="0" x2="250" y2="500" /><line x1="500" y1="0" x2="500" y2="500" /><line x1="750" y1="0" x2="750" y2="500" />
@@ -280,12 +291,26 @@
   </div>
 
   <div id="view-locations" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:13px;color:var(--muted);">Hacker locations aggregated across all incidents — every country carries provenance (intel table or IdP geo). Unlocated IPs are never guessed.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:13px;color:var(--muted);">Threat-origin geography aggregated across all incidents — every country carries provenance (operator intel or IdP geo). Unlocated IPs are never guessed.</div>
       <button class="btn primary" id="btnLoadLoc">Refresh</button>
     </div>
     <div class="kpis" id="locKpis"></div>
     <div class="grid2">
+      <div class="panel">
+        <h2>Events by Country <span class="badge">GET /api/locations</span></h2>
+        <div class="panel-body" id="chartCountryBar"></div>
+      </div>
+      <div class="panel">
+        <h2>Origin Provenance Mix <span class="badge">evidence-based geo only</span></h2>
+        <div class="panel-body" id="chartProvDonut"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <h2>Threat Activity Over Time <span class="badge">evidence timeline buckets</span></h2>
+      <div class="panel-body" id="chartActivity"></div>
+    </div>
+    <div class="grid2" style="margin-top:14px;">
       <div class="panel">
         <h2>Countries <span class="badge">GET /api/locations</span></h2>
         <div class="panel-body" id="locTable" style="overflow-x:auto;"></div>
@@ -294,7 +319,7 @@
         <h2>API Keys <span class="badge">/api/keys</span></h2>
         <div class="panel-body">
           <div class="form-row">
-            <div class="form-group"><label>Key name</label><input id="keyName" placeholder="siem-pipeline-prod" style="width:100%;" /></div>
+            <div class="form-group"><label for="keyName">Key name</label><input id="keyName" placeholder="siem-pipeline-prod" style="width:100%;" /></div>
             <div style="display:flex;align-items:flex-end;"><button class="btn primary" id="btnMintKey">Create key</button></div>
           </div>
           <div id="keyList"></div>
@@ -304,7 +329,7 @@
   </div>
 
   <div id="view-eval" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
       <div style="font-size:13px;color:var(--muted);">Golden-scenario evaluation: fabrication rate must be 0 for trust certification.</div>
       <button class="btn primary" id="btnRunEval">Run Evaluation</button>
     </div>
@@ -322,16 +347,45 @@
       <h2>Try It</h2>
       <div class="panel-body">
         <div class="form-row">
-          <div class="form-group" style="flex:2;"><label>Endpoint</label><input id="tryPath" value="/api/stats" style="width:100%;" /></div>
+          <div class="form-group" style="flex:2;"><label for="tryPath">Endpoint</label><input id="tryPath" value="/api/stats" style="width:100%;" /></div>
           <div style="display:flex;align-items:flex-end;"><button class="btn" id="btnTry">GET</button></div>
         </div>
         <pre class="code" id="tryResult">—</pre>
       </div>
     </div>
   </div>
-  <div class="footer-note">Sentinel SOC v1.0 — every claim in every report is backed by hash-chained evidence. Missing data is flagged, never invented.</div>
+  <div class="footer-note">Sentinel SOC v1.1 — every claim in every report is backed by hash-chained evidence. Missing data is flagged, never invented.</div>
 </main>
+
+<!-- Sign-in dialog -->
+<div id="loginModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="modal-content" style="width:min(460px,94vw);">
+    <button class="close-x" id="loginClose" aria-label="Close sign-in dialog">×</button>
+    <h3 id="loginTitle">Sign in</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+      Your tokens stay in this browser tab (sessionStorage) and are sent only to the API host above. Sign out any time.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="form-group" style="width:100%;">
+        <label for="loginAdmin">Admin token</label>
+        <input id="loginAdmin" type="password" placeholder="sentinel-admin-token" style="width:100%;" autocomplete="off" />
+      </div>
+      <div class="form-group" style="width:100%;">
+        <label for="loginIngest">Ingest API key <span style="color:var(--muted);">(optional)</span></label>
+        <input id="loginIngest" type="password" placeholder="ingest-demo-token" style="width:100%;" autocomplete="off" />
+      </div>
+    </div>
+    <div id="loginError" style="color:var(--red);font-size:12px;min-height:18px;margin:8px 0 4px;" role="alert"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn" id="loginCancel">Cancel</button>
+      <button class="btn primary" id="loginSubmit">Sign in</button>
+    </div>
+  </div>
+</div>
+
 <div id="modalRoot"></div>
+<script src="charts.js"></script>
+<script src="geo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

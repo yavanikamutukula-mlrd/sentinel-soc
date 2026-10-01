@@ -4,6 +4,18 @@ AI-assisted SOC investigation platform that correlates multi-domain telemetry
 (endpoint / identity / cloud / network) into **evidence-backed incident
 reports** — without hallucinating missing data.
 
+- **Multi-component pipeline**: high-velocity ingestion with strict
+  normalization, union-find correlation across endpoint/identity/cloud/network.
+- **Cross-domain correlation**: fragmented, noisy events are pieced into
+  cohesive incident storylines with unified timelines.
+- **Strict evidence grounding**: every claim cites evidence IDs that provably
+  exist in the hash-chained registry; anything unrepresented becomes a
+  visible DATA GAP.
+- **Adversarial resilience**: prompt-injection, replay, spoofing, clock-skew
+  and tamper detection; flagged content never reaches report generation.
+- **Production-ready evaluation**: golden-scenario suite auditing fabrication
+  rate, citation integrity, gap-flag accuracy and adversarial recall.
+
 ## Anti-hallucination guarantees (enforced by construction)
 
 | Guarantee | Mechanism |
@@ -12,7 +24,7 @@ reports** — without hallucinating missing data.
 | Missing data is flagged, never invented | Unrepresented domains/fields render as explicit gaps with a coverage note |
 | Evidence is tamper-evident | SHA-256 hash chain over canonical JSON; `GET /api/integrity/verify` detects any tamper/reorder/delete |
 | Adversarial logs are contained | Prompt-injection / replay / spoof / clock-skew detection; flagged content is excluded from AI context |
-| Location is provenance-tracked | Countries shown on the threat map carry `operator_intel` or `provider_geo` provenance; IPs without geo evidence are listed as **unlocated**, never guessed |
+| Location is provenance-tracked | Countries shown on maps/graphs carry `operator_intel` or `provider_geo` provenance; IPs without geo evidence are listed as **unlocated**, never guessed |
 | Measurable trust | Golden-scenario suite reports fabrication rate (must be 0), citation integrity, gap-flag accuracy, adversarial recall |
 
 ## Quick start
@@ -27,20 +39,73 @@ Dashboard: open the URL above. Default tokens (change in production):
 - Admin: `sentinel-admin-token`
 - Ingest: `ingest-demo-token`
 
+### Sign in / sign out
+
+Click **Sign in** in the header and paste your admin and/or ingest token.
+Tokens are validated against the backend (`GET /api/auth/whoami`), shown as a
+session chip, and stored **only in this browser tab** (sessionStorage) — sign
+out clears them. Visitors without a token can browse everything when
+`PUBLIC_MODE=true` (read-only).
+
+## Publish free (GitHub Pages + Render)
+
+1. **Dashboard on GitHub Pages (static, free):**
+   - Push this repo to GitHub (see below).
+   - Repo → Settings → Pages → Source: **GitHub Actions**.
+   - The included workflow (`.github/workflows/pages.yml`) builds a fresh
+     demo snapshot (`public/demo-data.json`) and deploys on every push to
+     `main`. Visitors get a fully browsable site — incidents, reports,
+     locations with graphs, threat map, evaluation — from the snapshot.
+   - To connect real-time data, visitors set the **API URL** field in the
+     header, or you share deep links like
+     `https://<user>.github.io/repo/?api=https://soc-api.onrender.com`.
+2. **API on Render (free web service):**
+   - render.com → New → Blueprint → select this repo (`render.yaml` included;
+     sets `AUTO_SEED` and `PUBLIC_MODE`).
+   - Set `ADMIN_TOKEN` / `INGEST_TOKENS` env vars on the free plan.
+3. **Point the dashboard at the API:** set the API URL field once (persisted
+   in localStorage) or use `?api=` deep links.
+
+> GitHub Pages serves only static files — the Node API must run somewhere
+> like Render. That's why the Pages build ships a demo snapshot as fallback.
+
+### Custom domain & subdomain
+
+**Dashboard (GitHub Pages):**
+1. Repo → Settings → Secrets and variables → Actions → **Variables** tab →
+   new variable `PAGES_CNAME` = `soc.yourdomain.com` (apex or subdomain).
+2. DNS: CNAME record → `<user>.github.io` (apex domains use A/ALIAS records
+   to GitHub's IPs).
+3. The workflow writes the CNAME file automatically on the next deploy.
+
+**API (Render):**
+1. Render → your service → Settings → Custom Domains → add
+   `api.yourdomain.com` (or any subdomain) and follow the DNS instructions.
+2. Set `PUBLIC_BASE_URL=https://api.yourdomain.com` so `/api` discovery and
+   endpoint references use your domain.
+3. Set `ALLOWED_ORIGINS=https://soc.yourdomain.com,https://<user>.github.io`
+   so the browser dashboard may call the API cross-origin (CORS preflight is
+   handled by the server). Keep `*` only for public demos.
+
 ## API
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
+| GET | `/api` | – | discovery: endpoints, domains, access info |
 | GET | `/api/health` | – | liveness + event count |
 | GET | `/api/stats` | – | registry stats by domain |
+| GET | `/api/auth/whoami` | – | token introspection: role + capabilities (login support) |
 | POST | `/api/ingest/event` | ingest | submit one telemetry event |
 | POST | `/api/ingest/batch` | ingest | up to 500 events |
-| GET | `/api/incidents` | admin | correlated incident list |
-| GET | `/api/reports` | admin | all evidence-backed reports |
-| GET | `/api/incidents/:id/report` | admin | one full report |
-| GET | `/api/integrity/verify` | admin | hash-chain verification |
-| GET | `/api/adversarial/sweep` | admin | injection/replay/spoof findings |
-| POST | `/api/evaluation/run` | admin | golden-scenario evaluation |
+| GET | `/api/incidents` | admin (open in public mode) | correlated incident list |
+| GET | `/api/reports` | admin (open in public mode) | all evidence-backed reports |
+| GET | `/api/incidents/:id/report` | admin (open in public mode) | one full report |
+| GET | `/api/evidence/:id` | admin (open in public mode) | raw chained evidence record |
+| GET | `/api/locations` | admin (open in public mode) | country rollup with provenance |
+| GET | `/api/integrity/verify` | admin (open in public mode) | hash-chain verification |
+| GET | `/api/adversarial/sweep` | admin (open in public mode) | injection/replay/spoof findings |
+| POST | `/api/evaluation/run` | admin (open in public mode) | golden-scenario evaluation |
+| POST/GET/DELETE | `/api/keys` | admin | mint / list / revoke ingest API keys |
 
 Event example:
 
@@ -58,31 +123,18 @@ reason** — never silently fixed, because fixing = inventing.
 
 Set `PUBLIC_MODE=true` (enabled in `render.yaml`) to let visitors browse
 everything on the website without a token: incidents, evidence-backed reports,
-threat-origin **locations**, integrity verification, adversarial sweep, and
-the evaluation runner. Write operations (ingest, API-key minting/revocation)
-always require credentials. Set `PUBLIC_MODE=false` for a private deployment.
+threat-origin **locations with graphs**, integrity verification, adversarial
+sweep, and the evaluation runner. Write operations (ingest, API-key
+minting/revocation) always require credentials. Set `PUBLIC_MODE=false` for a
+private deployment.
 
-## Custom URL & API access
+## Demo snapshot (static hosting)
 
-Three layers of custom-URL support:
-
-1. **Dashboard → any API host**: enter an API base URL in the header
-   ("API URL" field). It is persisted in localStorage and all dashboard
-   calls go to that host — useful when the API lives on a different
-   domain than the static dashboard.
-2. **Server-rendered links**: set `PUBLIC_BASE_URL=https://soc.yourdomain.com`
-   (Render → Environment) so `/api` discovery and all endpoint references
-   use your custom domain.
-3. **Cross-origin API access**: set `ALLOWED_ORIGINS` (comma-separated,
-   or `*`) so browser clients on your custom domain can call the API;
-   CORS preflight is handled by the server.
-
-After pointing DNS (CNAME) at your Render service, the API is reachable at
-`https://soc.yourdomain.com/api/...` with token auth:
-
-```bash
-curl https://soc.yourdomain.com/api/reports -H "Authorization: Bearer $ADMIN_TOKEN"
-```
+`npm run build:demo` regenerates `public/demo-data.json` from the same seed
+stories the live API uses. The GitHub Pages workflow runs it automatically.
+When the dashboard can't reach a backend it switches to **demo mode**: every
+view renders from the snapshot, and write operations return a clear
+"needs a live backend" message instead of failing silently.
 
 ## Location / threat-origin data
 
@@ -96,21 +148,12 @@ explicit, auditable correlation aliases.
 ## Evaluation
 
 ```bash
-npm run eval
+npm run eval     # CLI
+npm test         # boot-the-server smoke tests
 ```
 
 4 golden scenarios: full kill chain, identity-only noise (must NOT invent
 context), prompt-injection canary, replay attack. Fabrication rate must be 0.
-
-## Deploy free (Render)
-
-1. Push to GitHub.
-2. render.com → New → Blueprint → select repo (`render.yaml` included).
-3. Free plan: set `ADMIN_TOKEN` / `INGEST_TOKENS` env vars.
-4. Optional: custom domain in Render settings + `PUBLIC_BASE_URL`.
-
-Note: free tier disk is ephemeral — the evidence registry reseeds on restart.
-For durable storage, attach a Render disk or point `DATA_DIR` at a mounted path.
 
 ## Architecture
 
@@ -122,11 +165,32 @@ src/
     evidence-registry.js  append-only hash-chained store (anti-hallucination core)
     ingest.js             strict multi-domain normalization/validation
     correlate.js          union-find entity clustering + provenance-tracked location intel
+    locations.js          country-level aggregation (shared by API + demo build)
     adversarial.js        prompt-injection / replay / spoof / tamper detection
     report.js             evidence-cited report generator (gaps > invention)
     eval.js               golden-scenario evaluation framework
     golden-scenarios.js   ground-truth scenarios
     assets.js             operator CMDB + IP intel (location provenance)
-public/                   zero-build dashboard (live feed, incidents, threat map, eval)
-scripts/                  seed + eval CLI
+    apikeys.js            managed ingest credentials (survives restarts)
+public/                   zero-build dashboard (live feed, incidents, threat map,
+                          locations with graphs, eval) + demo-data.json snapshot
+scripts/                  seed + eval CLI + demo snapshot builder
+tests/                    smoke tests (boots the real server)
 ```
+
+## Push to GitHub
+
+```bash
+git init                       # if not already a repo
+git add -A
+git commit -m "Sentinel SOC: evidence-backed SOC platform"
+git remote add origin https://github.com/<you>/sentinel-soc.git
+git push -u origin main
+```
+
+Then enable Pages (Settings → Pages → Source: GitHub Actions). Deploys are
+automatic on every push to `main`.
+
+Note: Render's free tier disk is ephemeral — the evidence registry reseeds on
+restart (`AUTO_SEED=true`). For durable storage, attach a Render disk or point
+`DATA_DIR` at a mounted path.

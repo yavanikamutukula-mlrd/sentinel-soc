@@ -6,9 +6,10 @@ const config = require('./config');
 const logger = require('./lib/logger');
 const { EvidenceRegistry } = require('./lib/evidence-registry');
 const { normalizeEvent, DOMAINS } = require('./lib/ingest');
-const { correlate, assetMap } = require('./lib/correlate');
+const { correlate } = require('./lib/correlate');
 const { sweep } = require('./lib/adversarial');
 const { generateAll, generateOne } = require('./lib/report');
+const { aggregateLocations } = require('./lib/locations');
 const { runAll } = require('./lib/eval');
 const { randomId } = require('./lib/util');
 const { ApiKeyStore } = require('./lib/apikeys');
@@ -108,7 +109,52 @@ app.get('/api', (req, res) => {
     },
     anti_hallucination: 'reports cite evidence IDs for every claim; missing data is flagged, never invented',
     public_mode: config.publicMode ? 'read-only endpoints are open; ingest & key management require API keys' : 'all analysis endpoints require the admin token',
+    access: {
+      public_mode: config.publicMode,
+      allowed_origins: config.allowedOrigins,
+      custom_base_url: config.publicBaseUrl || null,
+      note: 'for browser clients on custom domains/subdomains, set ALLOWED_ORIGINS (comma-separated list or *)',
+    },
   });
+});
+
+// ---- Session introspection (login / logout support) ----
+// Always open: lets the dashboard validate a presented token and learn
+// what role it carries without exposing anything else.
+app.get('/api/auth/whoami', (req, res) => {
+  const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-api-key');
+  let role = 'public';
+  let name = 'visitor';
+  if (token && token === config.adminToken) {
+    role = 'admin';
+    name = 'admin';
+  } else if (token) {
+    const v = apiKeys.validate(token);
+    if (v.ok) {
+      role = 'ingest';
+      name = v.name || 'ingest-key';
+    }
+  }
+  res.json({
+    role,
+    name,
+    public_mode: config.publicMode,
+    capabilities: {
+      view_incidents: config.publicMode || role === 'admin',
+      view_reports: config.publicMode || role === 'admin',
+      view_locations: config.publicMode || role === 'admin',
+      run_evaluation: config.publicMode || role === 'admin',
+      ingest: role === 'ingest' || role === 'admin',
+      manage_keys: role === 'admin',
+    },
+  });
+});
+
+// ---- Single evidence record lookup (report citations resolve here) ----
+app.get('/api/evidence/:id', requireAdmin, (req, res) => {
+  const rec = registry.get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'evidence not found', id: req.params.id });
+  res.json({ ...rec, chain_integrity: registry.verifyChain().ok });
 });
 
 app.get('/api/health', (req, res) => {
@@ -217,32 +263,7 @@ app.delete('/api/keys/:id', requireAdmin, (req, res) => {
 
 // ---- Threat-origin locations (aggregated across all incidents) ----
 app.get('/api/locations', requireAdmin, (req, res) => {
-  const incidents = correlate(registry);
-  const byCountry = new Map(); // country -> { incidents, events, ips:Set, provenance, risk_max, tags:Set }
-  const unlocated = new Set();
-  for (const inc of incidents) {
-    const li = inc.location_intel || { countries: [], unlocated_ips: [] };
-    for (const c of li.countries) {
-      const rec = byCountry.get(c.country) || { country: c.country, incidents: 0, events: 0, ips: new Set(), provenance: c.provenance, risk_max: 0, tags: new Set() };
-      rec.incidents += 1;
-      rec.events += c.event_count;
-      c.ips.forEach((ip) => rec.ips.add(ip));
-      rec.risk_max = Math.max(rec.risk_max, inc.risk_score);
-      for (const ip of c.ips) {
-        const intel = assetMap.ipIntel[ip];
-        if (intel?.tags) intel.tags.forEach((t) => rec.tags.add(t));
-      }
-      byCountry.set(c.country, rec);
-    }
-    li.unlocated_ips.forEach((ip) => unlocated.add(ip));
-  }
-  res.json({
-    countries: [...byCountry.values()]
-      .map((c) => ({ ...c, ips: [...c.ips], tags: [...c.tags] }))
-      .sort((a, b) => b.risk_max - a.risk_max || b.events - a.events),
-    unlocated_ips: [...unlocated],
-    note: unlocated.size ? `${unlocated.size} external IP(s) unlocated — not guessed.` : 'All external IPs located with provenance.',
-  });
+  res.json(aggregateLocations(correlate(registry)));
 });
 
 // ---- Static frontend ----

@@ -8,8 +8,9 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node scripts/seed.js",
+    "build:demo": "node scripts/build-demo.js",
     "eval": "node scripts/eval.js",
-    "test": "node --test tests/"
+    "test": "node --test \"tests/*.test.js\""
   },
   "keywords": [
     "soc",

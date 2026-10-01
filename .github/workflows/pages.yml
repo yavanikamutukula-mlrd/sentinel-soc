@@ -1,5 +1,15 @@
 name: Deploy dashboard to GitHub Pages
 
+# Publishes the static dashboard, free, on every push to main.
+# The demo snapshot (public/demo-data.json) is rebuilt from the seed stories
+# so visitors without a backend still get a fully browsable site.
+#
+# Optional custom domain / subdomain (e.g. soc.yourdomain.com):
+#   Repo → Settings → Secrets and variables → Actions → Variables tab →
+#   New variable PAGES_CNAME = soc.yourdomain.com
+#   Then point your DNS CNAME at <user>.github.io. The workflow writes the
+#   CNAME file automatically when the variable is set.
+
 on:
   push:
     branches: [main]
@@ -22,6 +32,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Build demo snapshot
+        run: npm run build:demo
+      - name: Write custom domain (optional)
+        if: ${{ vars.PAGES_CNAME != '' }}
+        run: printf '%s' "${{ vars.PAGES_CNAME }}" > public/CNAME
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
