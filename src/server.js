@@ -2,6 +2,7 @@
 
 const express = require('express');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const config = require('./config');
 const logger = require('./lib/logger');
 const { EvidenceRegistry } = require('./lib/evidence-registry');
@@ -32,7 +33,41 @@ if (config.autoSeed && registry.order.length === 0) {
 
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 1); // behind Render/Pages proxies: correct req.ip + protocol
 app.use(express.json({ limit: '1mb' }));
+
+// ---- Security headers (privacy & integration hardening) ----
+// CSP blocks third-party script injection; HSTS/anti-clickjacking/anti-sniff
+// headers protect dashboard users. connect-src restricts API calls to self +
+// https so a pasted API host can't exfiltrate tokens to arbitrary origins.
+app.use((req, res, next) => {
+  res.set({
+    'Content-Security-Policy':
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; " +
+      "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+  });
+  next();
+});
+
+// ---- Timing-safe secret comparison ----
+function safeEqual(a, b) {
+  const ab = Buffer.isBuffer(a) ? a : Buffer.from(String(a));
+  const bb = Buffer.isBuffer(b) ? b : Buffer.from(String(b));
+  if (ab.length !== bb.length) {
+    // Compare against self to keep timing uniform, then fail.
+    crypto.timingSafeEqual(ab, ab);
+    return false;
+  }
+  return crypto.timingSafeEqual(ab, bb);
+}
 
 // ---- CORS: allow browser clients on custom domains to call this API ----
 app.use((req, res, next) => {
@@ -67,7 +102,7 @@ function requireAdmin(req, res, next) {
   const readOnly = req.method === 'GET' || (req.method === 'POST' && req.path === '/api/evaluation/run');
   if (config.publicMode && readOnly) return next();
   const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-api-key');
-  if (!token || token !== config.adminToken) {
+  if (!token || !safeEqual(token, config.adminToken)) {
     return res.status(401).json({ error: 'unauthorized', hint: 'provide admin token via Authorization: Bearer or x-api-key' });
   }
   next();
@@ -125,7 +160,7 @@ app.get('/api/auth/whoami', (req, res) => {
   const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-api-key');
   let role = 'public';
   let name = 'visitor';
-  if (token && token === config.adminToken) {
+  if (token && safeEqual(token, config.adminToken)) {
     role = 'admin';
     name = 'admin';
   } else if (token) {
@@ -231,6 +266,8 @@ app.post('/api/evaluation/run', requireAdmin, (req, res) => {
 });
 
 // ---- API key management (admin) ----
+// Privacy: only a SHA-256 hash of each key is stored server-side; the
+// plaintext is returned exactly once below and can never be recovered.
 app.post('/api/keys', requireAdmin, (req, res) => {
   const rec = apiKeys.create(req.body?.name);
   res.status(201).json({
@@ -247,7 +284,7 @@ app.get('/api/keys', requireAdmin, (req, res) => {
     keys: apiKeys.list().map((k) => ({
       id: k.id,
       name: k.name,
-      key_preview: k.key.slice(0, 14) + '…',
+      key_preview: k.preview || 'sk_ingest_…',
       created_at: k.created_at,
       revoked: k.revoked,
       last_used: k.last_used,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sentinel SOC — Evidence-Backed Incident Investigation</title>
+<title>Cerberus — Evidence-Backed Incident Investigation</title>
 <style>
   :root {
     --bg: #0a0e14;
@@ -192,7 +192,7 @@
   <div class="brand">
     <div class="logo">🛡️</div>
     <div>
-      <h1>Sentinel SOC</h1>
+      <h1>Cerberus</h1>
       <div class="sub">Evidence-Backed Incident Investigation</div>
     </div>
   </div>
@@ -238,7 +238,7 @@
             <div class="form-group"><label for="ingAction">Action</label>
               <select id="ingAction"></select>
             </div>
-            <div class="form-group"><label for="ingToken">Ingest token</label><input id="ingToken" type="password" value="ingest-demo-token" style="width:100%;" autocomplete="off" /></div>
+            <div class="form-group"><label for="ingToken">Ingest token</label><input id="ingToken" type="password" value="cerberus-ingest-token" style="width:100%;" autocomplete="off" /></div>
             <div style="display:flex;align-items:flex-end;"><button class="btn primary" id="btnIngest">Send Event</button></div>
           </div>
           <div class="form-row" id="ingFields"></div>
@@ -338,6 +338,36 @@
 
   <div id="view-api" style="display:none;">
     <div class="panel">
+      <h2>Data Privacy & Integration Security <span class="badge">what this platform does and does not do with your data</span></h2>
+      <div class="panel-body" style="font-size:13px;line-height:1.7;">
+        <div class="grid2">
+          <div>
+            <h3 style="font-size:13px;color:var(--accent);margin-bottom:8px;">🔒 Data privacy</h3>
+            <ul style="padding-left:18px;color:var(--text);">
+              <li><b>No third-party calls from your browser.</b> Zero external scripts, fonts, or analytics — the dashboard loads only its own files (enforced by a strict Content-Security-Policy on the API).</li>
+              <li><b>Tokens never leave this browser tab.</b> Sign-in credentials live in sessionStorage and are sent only to the API host you choose; sign-out wipes them. Nothing is written to cookies.</li>
+              <li><b>API keys are hashed at rest.</b> The backend stores only SHA-256 hashes of ingest keys — a database or disk leak cannot mint working credentials. Keys are shown once at creation, then never again.</li>
+              <li><b>Secrets never enter the evidence chain.</b> Tokens and keys are metadata-stripped before events are committed; the hash chain stores telemetry only.</li>
+              <li><b>Minimal collection.</b> No accounts, no tracking identifiers, no telemetry from the dashboard itself. The demo snapshot is synthetic data — no real users or hosts.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size:13px;color:var(--accent);margin-bottom:8px;">🔗 Integration security</h3>
+            <ul style="padding-left:18px;color:var(--text);">
+              <li><b>Constant-time credential checks.</b> Admin and ingest tokens are compared with timing-safe routines, so response timing leaks no information about valid tokens.</li>
+              <li><b>Strict ingest validation.</b> Every event is schema-checked and size-capped (256 KB/event, 600/min/key, 500/batch); anything malformed is rejected with an explicit reason, never guessed.</li>
+              <li><b>Tamper-evident chain of custody.</b> Every event is chained by SHA-256 into an append-only registry — any modification, reordering, or deletion is detectable via <code>GET /api/integrity/verify</code>.</li>
+              <li><b>Replay & spoof containment.</b> Duplicate fingerprints, impossible timestamps (&gt;30d skew), and prompt-injection canaries are flagged and excluded from reports.</li>
+              <li><b>CORS allow-listing.</b> Browser origins that may call the API are controlled by the <code>ALLOWED_ORIGINS</code> env var — lock it to your dashboard domain in production.</li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);font-size:12px;color:var(--muted);">
+          ⚠ This public demo runs in read-only public mode with synthetic data. For a real deployment: set unique <code>ADMIN_TOKEN</code> / <code>INGEST_TOKENS</code>, restrict <code>ALLOWED_ORIGINS</code> to your dashboard host, disable <code>PUBLIC_MODE</code>, and attach persistent storage for the evidence registry.
+        </div>
+      </div>
+    </div>
+    <div class="panel">
       <h2>API Reference <span class="badge">custom URL support via PUBLIC_BASE_URL</span></h2>
       <div class="panel-body">
         <pre class="code" id="apiRef">Loading…</pre>
@@ -354,7 +384,7 @@
       </div>
     </div>
   </div>
-  <div class="footer-note">Sentinel SOC v1.1 — every claim in every report is backed by hash-chained evidence. Missing data is flagged, never invented.</div>
+  <div class="footer-note">Cerberus v1.1 — every claim in every report is backed by hash-chained evidence. Missing data is flagged, never invented.</div>
 </main>
 
 <!-- Sign-in dialog -->
@@ -363,16 +393,16 @@
     <button class="close-x" id="loginClose" aria-label="Close sign-in dialog">×</button>
     <h3 id="loginTitle">Sign in</h3>
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-      Your tokens stay in this browser tab (sessionStorage) and are sent only to the API host above. Sign out any time.
+      🔒 Your tokens stay in this browser tab (sessionStorage) and are sent only to the API host above. Sign out any time — nothing is ever stored server-side or in cookies.
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div class="form-group" style="width:100%;">
         <label for="loginAdmin">Admin token</label>
-        <input id="loginAdmin" type="password" placeholder="sentinel-admin-token" style="width:100%;" autocomplete="off" />
+        <input id="loginAdmin" type="password" placeholder="cerberus-admin-token" style="width:100%;" autocomplete="off" />
       </div>
       <div class="form-group" style="width:100%;">
         <label for="loginIngest">Ingest API key <span style="color:var(--muted);">(optional)</span></label>
-        <input id="loginIngest" type="password" placeholder="ingest-demo-token" style="width:100%;" autocomplete="off" />
+        <input id="loginIngest" type="password" placeholder="cerberus-ingest-token" style="width:100%;" autocomplete="off" />
       </div>
     </div>
     <div id="loginError" style="color:var(--red);font-size:12px;min-height:18px;margin:8px 0 4px;" role="alert"></div>

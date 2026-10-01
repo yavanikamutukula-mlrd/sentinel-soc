@@ -21,7 +21,7 @@ const config = require('../config');
 const logger = require('./logger');
 const { sha256Hex, canonicalJson, randomId } = require('./util');
 
-const SEED_HASH = sha256Hex('sentinel-soc:genesis');
+const SEED_HASH = sha256Hex('cerberus-soc:genesis');
 
 class EvidenceRegistry {
   constructor() {

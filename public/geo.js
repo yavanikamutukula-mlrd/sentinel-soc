@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Sentinel SOC geo — minimal equirectangular world map data.
+ * Cerberus geo — minimal equirectangular world map data.
  *
  * Continents are hand-simplified polygons (recognizable silhouettes, not
  * survey-grade) in a 1000x500 viewBox where:

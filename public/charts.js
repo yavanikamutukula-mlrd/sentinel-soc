@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Sentinel SOC charts — dependency-free SVG chart helpers.
+ * Cerberus charts — dependency-free SVG chart helpers.
  * Every chart renders role="img" with a <title> for screen readers and
  * falls back to an .empty message when there is no data.
  */

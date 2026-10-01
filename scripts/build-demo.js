@@ -17,7 +17,7 @@ const fs = require('node:fs');
 // Isolate the throwaway registry from the operator's data dir BEFORE
 // requiring config (config reads DATA_DIR at require time). Asset intel
 // falls back to the bundled data/ files, so location tracking still works.
-const tmpData = fs.mkdtempSync(path.join(os.tmpdir(), 'sentinel-demo-'));
+const tmpData = fs.mkdtempSync(path.join(os.tmpdir(), 'cerberus-demo-'));
 process.env.DATA_DIR = tmpData;
 
 const config = require('../src/config');

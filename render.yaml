@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sentinel-soc
+    name: cerberus-soc
     runtime: node
     plan: free
     autoDeploy: true
@@ -17,7 +17,7 @@ services:
       - key: PUBLIC_BASE_URL
         value: ""   # set to your custom domain after pointing DNS, e.g. https://soc.yourdomain.com
       - key: DATA_DIR
-        value: /tmp/sentinel-data   # free tier has ephemeral disk; use a Render disk in production
+        value: /tmp/cerberus-data   # free tier has ephemeral disk; use a Render disk in production
       - key: AUTO_SEED
         value: "true"   # rebuild demo dataset after cold start (ephemeral disk)
       - key: PUBLIC_MODE

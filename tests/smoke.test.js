@@ -19,7 +19,7 @@ const ADMIN = 'test-admin-token';
 const INGEST = 'test-ingest-token';
 
 function startServer() {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sentinel-test-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cerberus-test-'));
   return spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {
     env: {
       ...process.env,

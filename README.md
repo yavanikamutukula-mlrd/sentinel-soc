@@ -1,4 +1,4 @@
-# Sentinel SOC — Evidence-Backed AI Security Operations
+# Cerberus — Evidence-Backed AI Security Operations
 
 AI-assisted SOC investigation platform that correlates multi-domain telemetry
 (endpoint / identity / cloud / network) into **evidence-backed incident
@@ -36,8 +36,8 @@ npm start        # http://localhost:3000
 ```
 
 Dashboard: open the URL above. Default tokens (change in production):
-- Admin: `sentinel-admin-token`
-- Ingest: `ingest-demo-token`
+- Admin: `cerberus-admin-token`
+- Ingest: `cerberus-ingest-token`
 
 ### Sign in / sign out
 
@@ -114,7 +114,7 @@ Event example:
 
 ```bash
 curl -X POST $BASE/api/ingest/event \
-  -H "Authorization: Bearer ingest-demo-token" \
+  -H "Authorization: Bearer cerberus-ingest-token" \
   -H "Content-Type: application/json" \
   -d '{"domain":"identity","action":"login_failure","timestamp":"2026-10-01T10:00:00Z","user":"j.doe","src_ip":"185.220.101.7","geo":"RU","mfa_used":false,"source_tool":"okta"}'
 ```
@@ -130,6 +130,35 @@ threat-origin **locations with graphs**, integrity verification, adversarial
 sweep, and the evaluation runner. Write operations (ingest, API-key
 minting/revocation) always require credentials. Set `PUBLIC_MODE=false` for a
 private deployment.
+
+## Data privacy & integration security
+
+Privacy is a design constraint, not an afterthought:
+
+- **Zero third-party exposure.** The dashboard loads no external scripts,
+  fonts, or analytics. The API serves a strict Content-Security-Policy
+  (`script-src 'self'`, `frame-ancestors 'none'`, no object/base-uri abuse),
+  plus `X-Frame-Options`, `nosniff`, `Referrer-Policy: no-referrer`, HSTS,
+  and COOP/CORP headers.
+- **Credentials stay client-side.** Dashboard tokens live in sessionStorage
+  (cleared on sign-out); no cookies, no server-side sessions. Keys are never
+  logged and never enter the evidence chain.
+- **Keys hashed at rest.** `data/api-keys.json` stores SHA-256 hashes only —
+  the plaintext key is shown once at creation, then unrecoverable. Validation
+  is timing-safe (`crypto.timingSafeEqual`) for admin + ingest tokens alike.
+- **Hardened ingestion.** Per-event size cap, per-key rate limit, batch cap,
+  strict schema validation with explicit rejection reasons, duplicate
+  fingerprint replay detection, and >30-day clock-skew rejection.
+- **Tamper-evident chain of custody.** SHA-256 hash chain over canonical
+  JSON — verify any deployment with `GET /api/integrity/verify`.
+- **CORS allow-listing.** `ALLOWED_ORIGINS` controls which browser origins
+  may call the API; lock it to your dashboard domain in production.
+- **Minimal data footprint.** No accounts, no tracking, no telemetry from the
+  dashboard itself; the demo snapshot is fully synthetic.
+
+Production checklist: unique `ADMIN_TOKEN` + `INGEST_TOKENS`,
+`ALLOWED_ORIGINS=https://your-dashboard-host`, `PUBLIC_MODE=false`, persistent
+`DATA_DIR` volume, and HTTPS termination in front of the API.
 
 ## Demo snapshot (static hosting)
 
@@ -186,7 +215,7 @@ tests/                    smoke tests (boots the real server)
 ```bash
 git init                       # if not already a repo
 git add -A
-git commit -m "Sentinel SOC: evidence-backed SOC platform"
+git commit -m "Cerberus: evidence-backed SOC platform"
 git remote add origin https://github.com/<you>/sentinel-soc.git
 git push -u origin main
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "sentinel-soc",
+  "name": "cerberus-soc",
   "version": "1.0.0",
   "description": "AI-assisted Security Operations Centre (SOC) investigation system that correlates multi-domain telemetry into evidence-backed incident reports without hallucinating missing data.",
   "main": "src/server.js",
@@ -20,7 +20,7 @@
     "ai-copilot",
     "siem"
   ],
-  "author": "Sentinel SOC",
+  "author": "Cerberus",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

@@ -14,7 +14,7 @@ function intEnv(name, fallback) {
 }
 
 const config = {
-  appName: 'Sentinel SOC',
+  appName: 'Cerberus',
   version: '1.0.0',
   port: intEnv('PORT', 3000),
   host: env('HOST', '0.0.0.0'),
@@ -23,9 +23,10 @@ const config = {
   publicDir: path.resolve(__dirname, '..', 'public'),
   // Public base URL used to render absolute API links (custom domain support).
   publicBaseUrl: env('PUBLIC_BASE_URL', ''),
-  // Authentication
-  adminToken: env('ADMIN_TOKEN', 'sentinel-admin-token'),
-  ingestTokens: env('INGEST_TOKENS', 'ingest-demo-token')
+  // Authentication. Default tokens are for the public demo ONLY — always set
+  // ADMIN_TOKEN / INGEST_TOKENS env vars in any real deployment.
+  adminToken: env('ADMIN_TOKEN', 'cerberus-admin-token'),
+  ingestTokens: env('INGEST_TOKENS', 'cerberus-ingest-token')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),

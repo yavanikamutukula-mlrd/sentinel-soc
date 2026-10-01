@@ -1,9 +1,9 @@
 'use strict';
 
-/* Sentinel SOC dashboard — vanilla JS, no build step.
+/* Cerberus dashboard — vanilla JS, no build step.
  *
  * Runs in two modes:
- *  - LIVE: talks to the Sentinel SOC API (same host, or a custom host set
+ *  - LIVE: talks to the Cerberus API (same host, or a custom host set
  *    via the API URL field or ?api=https://host deep link).
  *  - DEMO: when no backend is reachable (e.g. GitHub Pages), serves a
  *    generated snapshot (demo-data.json) so every visitor gets a fully
@@ -13,8 +13,8 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-const DEMO_CREDENTIALS = { admin: 'sentinel-admin-token', ingest: 'ingest-demo-token' };
-const SESSION_KEY = 'sentinel_session';
+const DEMO_CREDENTIALS = { admin: 'cerberus-admin-token', ingest: 'cerberus-ingest-token' };
+const SESSION_KEY = 'cerberus_session';
 
 // ---------------------------------------------------------------------------
 // Session (login / logout)
@@ -25,7 +25,7 @@ let session = (() => {
     if (s && typeof s === 'object') return { adminToken: s.adminToken || '', ingestToken: s.ingestToken || '', role: s.role || null, name: s.name || null };
   } catch { /* corrupt storage — start fresh */ }
   // Migrate a legacy localStorage admin token once, then move to session scope.
-  const legacy = localStorage.getItem('sentinel_admin_token');
+  const legacy = localStorage.getItem('sentinel_admin_token'); // legacy key kept for migration
   if (legacy) return { adminToken: legacy, ingestToken: '', role: null, name: null };
   return { adminToken: '', ingestToken: '', role: null, name: null };
 })();
@@ -45,11 +45,11 @@ function isSignedIn() {
 // ---------------------------------------------------------------------------
 // Custom API host ("API URL" field + ?api= deep link)
 // ---------------------------------------------------------------------------
-let apiBase = localStorage.getItem('sentinel_api_base') || '';
+let apiBase = localStorage.getItem('cerberus_api_base') || '';
 const urlApi = new URLSearchParams(location.search).get('api');
 if (urlApi) {
   apiBase = normalizeBase(urlApi);
-  localStorage.setItem('sentinel_api_base', apiBase);
+  localStorage.setItem('cerberus_api_base', apiBase);
 }
 $('#apiBaseInput').value = apiBase;
 
@@ -64,7 +64,7 @@ function normalizeBase(u) {
 
 $('#apiBaseInput').addEventListener('change', (e) => {
   apiBase = normalizeBase(e.target.value);
-  localStorage.setItem('sentinel_api_base', apiBase);
+  localStorage.setItem('cerberus_api_base', apiBase);
   backendReachable = null; // re-probe with the new base
   toast(apiBase ? `API base set: ${apiBase}` : 'API base cleared — using this host');
   initConnectivity();
@@ -143,7 +143,7 @@ async function demoApi(path, opts = {}) {
     case '/api':
       return json(200, {
         name: d.app.name, version: d.app.version, demo_mode: true,
-        description: 'Static demo snapshot (no backend connected). Point the API URL field at a live Sentinel SOC host for real-time ingestion and key management.',
+        description: 'Static demo snapshot (no backend connected). Point the API URL field at a live Cerberus host for real-time ingestion and key management.',
         endpoints: {},
       });
     case '/api/health':
